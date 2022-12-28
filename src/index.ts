@@ -1,6 +1,6 @@
 import { Logger } from "sitka";
 import express from "express";
-
+import cors from "cors";
 import ApiRouter from "./api/routes";
 
 const PORT = 3000;
@@ -34,6 +34,11 @@ class FluffyApp {
   public _setupMiddlewares() {
     this._expressApp.use(express.json());
     this._expressApp.use(express.urlencoded({ extended: true }));
+    this._expressApp.use(
+      cors({
+        origin: "*",
+      })
+    );
   }
 
   private _bindRoutes() {
