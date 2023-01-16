@@ -2,18 +2,27 @@ import { Logger } from "sitka";
 import express from "express";
 import cors from "cors";
 import ApiRouter from "./api/routes";
+import dotenv from "dotenv";
+import mongoose from "mongoose";
 
 const PORT = 3000;
 
 class FluffyApp {
   private _logger: Logger;
   private _expressApp: express.Application;
+
   constructor() {
     this._logger = Logger.getLogger(this.constructor.name);
     this._setup();
   }
 
   private async _setup() {
+    dotenv.config();
+    this._logger.info("Environment variables have been loaded");
+
+    await this._connectToDb();
+    this._logger.info("Connected to MongoDB");
+
     this._create();
     this._logger.info("Express app has been created");
 
@@ -25,6 +34,11 @@ class FluffyApp {
 
     await this._listen();
     this._logger.info(`App is listening on port ${PORT}`);
+  }
+
+  private async _connectToDb() {
+    mongoose.set("strictQuery", false);
+    await mongoose.connect(process.env.MONGO_URI);
   }
 
   private _create() {
