@@ -6,7 +6,8 @@
   "scripts": {
     "clean": "rimraf dist",
     "build": "npm run clean && tsc",
-    "start": "npm run build && node dist/index.js"
+    "start": "npm run build && node dist/index.js",
+    "rimraf": "./node_modules/rimraf/bin.js"
   },
   "keywords": [],
   "author": "",
