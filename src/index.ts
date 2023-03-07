@@ -4,8 +4,9 @@ import cors from "cors";
 import ApiRouter from "./api/routes";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import multer from "multer";
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 class FluffyApp {
   private _logger: Logger;
