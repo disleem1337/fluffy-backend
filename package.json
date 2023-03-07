@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "clean": "rimraf dist",
-    "build": "npm i rimraf -g && npm i typescript -g && npm run clean && tsc",
+    "build": "npm i rimraf -g && npm i typescript -g && npx ts-node --files ./src/types/requestWithUser.d.ts && npm run clean && tsc",
     "start": "npm run build && node dist/index.js"
   },
   "keywords": [],
