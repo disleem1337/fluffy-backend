@@ -5,9 +5,8 @@
   "main": "index.js",
   "scripts": {
     "clean": "rimraf dist",
-    "build": "npm run clean && tsc",
-    "start": "npm run build && node dist/index.js",
-    "rimraf": "./node_modules/rimraf/bin.js"
+    "build": "npm install rimraf --global",
+    "start": "npm run build && node dist/index.js"
   },
   "keywords": [],
   "author": "",
