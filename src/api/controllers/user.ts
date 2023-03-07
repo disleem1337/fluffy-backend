@@ -8,6 +8,7 @@ const setupSchema = Joi.object({
   name: Joi.string().alphanum().required().min(3).max(64),
   username: Joi.string().alphanum().required().min(3).max(64),
   email: Joi.string().email().required(),
+  profileImage: Joi.string().optional(),
 });
 
 class UserController {
@@ -20,9 +21,9 @@ class UserController {
   }
 
   public async setup(req: RequestWithUser, res: Response): Promise<any> {
-    const { name, username, email } = req.body;
+    const { name, username, email,profileImage } = req.body;
 
-    const { error } = setupSchema.validate({ name, username, email });
+    const { error } = setupSchema.validate({ name, username, email ,profileImage});
 
     if (error) {
       return res.status(400).json({ message: error.details[0].message });
@@ -56,11 +57,14 @@ class UserController {
     user.username = username;
     user.email = email.toLowerCase();
     user.setup = true;
+    user.profileImage = profileImage ? profileImage : null;
 
     await user.save();
 
     return res.status(200).json({ message: "OK" });
   }
+
+
 }
 
 export default new UserController();
