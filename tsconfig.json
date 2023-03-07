@@ -6,6 +6,6 @@
       "sourceMap": true,
       "outDir": "dist",
       "rootDir": "./src",
-      "typeRoots": ["./node_modules/@types", "dist/src/types/requestWithUser.ts"],
+      "typeRoots": ["./node_modules/@types", "./src/types"],
     },
   }
