@@ -18,6 +18,6 @@ router.post(
 
 router.get("/", Authorization, PostController.getUserPost);
 
-router.get("/feed", Authorization, PostController.getRandomPost);
+router.get("/feed", Authorization, PostController.getFeed);
 
 export default router;

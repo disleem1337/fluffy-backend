@@ -6,6 +6,7 @@ import { RequestWithUser } from "../../types/requestWithUser";
 import { s3, bucketName, region } from "../../s3";
 import { randomUUID } from "crypto";
 import post from "../../models/post";
+import mongoose from "mongoose";
 
 class PostController {
   public async CreatePost(req: RequestWithUser, res: Response): Promise<any> {
@@ -14,11 +15,8 @@ class PostController {
     const images = req.files["images"];
     const videos = req.files["video"];
 
-    if (!images && !videos)
-      return res.status(400).json({ message: "Images or Videos are required" });
-
-    if (!desc)
-      return res.status(400).json({ message: "Description is required" });
+    if (!desc && !images && !videos)
+      return res.status(400).json({ message: "Content is required" });
 
     const content = [];
 
@@ -87,7 +85,7 @@ class PostController {
     }
 
     const Post = new post({
-      userid: req.id,
+      userid: new mongoose.Types.ObjectId(req.id),
       desc: desc,
       content: content,
     });
@@ -103,17 +101,28 @@ class PostController {
     return res.json({ message: "OK", user: req.id, userposts: userposts });
   }
 
-  public async getRandomPost(
-    req: RequestWithUser,
-    res: Response
-  ): Promise<any> {
-    post.aggregate([{ $sample: { size: 10 } }], function (err, result) {
-      if (err) {
-        return res.status(400).json({ message: err });
-      }
+  public async getFeed(req: RequestWithUser, res: Response): Promise<any> {
+    post.aggregate(
+      [
+        { $sort: { createdAt: -1 } },
+        { $limit: 10 },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userid",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+      ],
+      function (err, result) {
+        if (err) {
+          return res.status(400).json({ message: err });
+        }
 
-      return res.json({ message: "OK", data: result });
-    });
+        return res.json({ message: "OK", data: result });
+      }
+    );
   }
 }
 
