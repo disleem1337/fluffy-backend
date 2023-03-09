@@ -20,6 +20,15 @@ class PostController {
 
     const content = [];
 
+    const ContentSchema = new Map(
+      Object.entries({
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        mp4: "video/mp4",
+      })
+    );
+
     if (images) {
       await Promise.all(
         images.map(async (image: any) => {
@@ -37,6 +46,7 @@ class PostController {
                 Bucket: bucketName,
                 Key: s3FilePath,
                 Body: image.buffer,
+                ContentType: ContentSchema.get(extension),
               })
               .promise();
 
@@ -69,6 +79,7 @@ class PostController {
                 Bucket: bucketName,
                 Key: s3FilePath,
                 Body: video.buffer,
+                ContentType: ContentSchema.get(extension),
               })
               .promise();
 
