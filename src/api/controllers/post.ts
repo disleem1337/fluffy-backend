@@ -140,6 +140,9 @@ class PostController {
           $addFields: {
             likeCount: { $size: "$likes" },
             commentCount: { $size: "$comments" },
+            liked: {
+              $in: [new mongoose.Types.ObjectId(req.id), "$likes.userid"],
+            },
           },
         },
         {
@@ -191,6 +194,9 @@ class PostController {
           $addFields: {
             likeCount: { $size: "$likes" },
             commentCount: { $size: "$comments" },
+            liked: {
+              $in: [new mongoose.Types.ObjectId(req.id), "$likes.userid"],
+            },
           },
         },
         {
