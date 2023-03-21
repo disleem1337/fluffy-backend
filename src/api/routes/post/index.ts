@@ -20,4 +20,12 @@ router.get("/", Authorization, PostController.getUserPost);
 
 router.get("/feed", Authorization, PostController.getFeed);
 
+router.post("/like", Authorization, PostController.likePost);
+
+router.post("/unlike", Authorization, PostController.unlikePost);
+
+router.post("/comment", Authorization, PostController.commentPost);
+
+router.delete("/comment", Authorization, PostController.deleteComment);
+
 export default router;

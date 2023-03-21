@@ -6,6 +6,8 @@ import { RequestWithUser } from "../../types/requestWithUser";
 import { s3, bucketName, region } from "../../s3";
 import { randomUUID } from "crypto";
 import post from "../../models/post";
+import postLike from "../../models/postLike";
+import postComment from "../../models/postComment";
 import mongoose from "mongoose";
 
 class PostController {
@@ -107,9 +109,53 @@ class PostController {
   }
 
   public async getUserPost(req: RequestWithUser, res: Response): Promise<any> {
-    let userposts = await post.find({ userid: req.id });
+    post.aggregate(
+      [
+        { $match: { userid: new mongoose.Types.ObjectId(req.id) } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userid",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $lookup: {
+            from: "postlikes",
+            localField: "_id",
+            foreignField: "postid",
+            as: "likes",
+          },
+        },
+        {
+          $lookup: {
+            from: "postcomments",
+            localField: "_id",
+            foreignField: "postid",
+            as: "comments",
+          },
+        },
+        {
+          $addFields: {
+            likeCount: { $size: "$likes" },
+            commentCount: { $size: "$comments" },
+          },
+        },
+        {
+          $unset: ["likes"],
+        },
+      ],
+      function (err, result) {
+        if (err) {
+          return res.status(400).json({ message: err });
+        }
 
-    return res.json({ message: "OK", user: req.id, userposts: userposts });
+        return res
+          .status(200)
+          .json({ message: "OK", user: req.id, userposts: result });
+      }
+    );
   }
 
   public async getFeed(req: RequestWithUser, res: Response): Promise<any> {
@@ -125,6 +171,31 @@ class PostController {
             as: "user",
           },
         },
+        {
+          $lookup: {
+            from: "postcomments",
+            localField: "_id",
+            foreignField: "postid",
+            as: "comments",
+          },
+        },
+        {
+          $lookup: {
+            from: "postlikes",
+            localField: "_id",
+            foreignField: "postid",
+            as: "likes",
+          },
+        },
+        {
+          $addFields: {
+            likeCount: { $size: "$likes" },
+            commentCount: { $size: "$comments" },
+          },
+        },
+        {
+          $unset: ["likes"],
+        },
       ],
       function (err, result) {
         if (err) {
@@ -134,6 +205,98 @@ class PostController {
         return res.json({ message: "OK", data: result });
       }
     );
+  }
+
+  public async likePost(req: RequestWithUser, res: Response): Promise<any> {
+    const { postid } = req.body;
+
+    if (!postid)
+      return res.status(404).json({ message: "Post id is required" });
+
+    const PostLiked = await postLike.findOne({
+      postid: new mongoose.Types.ObjectId(postid),
+      userid: new mongoose.Types.ObjectId(req.id),
+    });
+
+    if (PostLiked) {
+      return res.status(400).json({ message: "Post already liked" });
+    }
+
+    const PostLike = new postLike({
+      postid: new mongoose.Types.ObjectId(postid),
+      userid: new mongoose.Types.ObjectId(req.id),
+    });
+
+    await PostLike.save();
+
+    return res.status(200).json({ message: "Liked post" });
+  }
+
+  public async unlikePost(req: RequestWithUser, res: Response): Promise<any> {
+    const { postid } = req.body;
+
+    if (!postid)
+      return res.status(404).json({ message: "Post id is required" });
+
+    const PostLiked = await postLike.findOne({
+      postid: new mongoose.Types.ObjectId(postid),
+      userid: new mongoose.Types.ObjectId(req.id),
+    });
+
+    if (!PostLiked) {
+      return res.status(400).json({ message: "Post not liked" });
+    }
+
+    await postLike.deleteOne({
+      postid: new mongoose.Types.ObjectId(postid),
+      userid: new mongoose.Types.ObjectId(req.id),
+    });
+
+    return res.status(200).json({ message: "Unliked post" });
+  }
+
+  public async commentPost(req: RequestWithUser, res: Response): Promise<any> {
+    const { postid, comment } = req.body;
+
+    if (!postid)
+      return res.status(404).json({ message: "Post id is required" });
+
+    if (!comment)
+      return res.status(404).json({ message: "Comment is required" });
+
+    const PostComment = new postComment({
+      postid: new mongoose.Types.ObjectId(postid),
+      userid: new mongoose.Types.ObjectId(req.id),
+      comment: comment,
+    });
+
+    await PostComment.save();
+
+    return res.status(200).json({ message: "Commented post" });
+  }
+
+  public async deleteComment(
+    req: RequestWithUser,
+    res: Response
+  ): Promise<any> {
+    const { commentid } = req.body;
+
+    if (!commentid)
+      return res.status(404).json({ message: "Comment id is required" });
+
+    const Comment = await postComment.findOne({
+      _id: new mongoose.Types.ObjectId(commentid),
+    });
+
+    if (!Comment) {
+      return res.status(400).json({ message: "Comment not found" });
+    }
+
+    await postComment.deleteOne({
+      _id: new mongoose.Types.ObjectId(commentid),
+    });
+
+    return res.status(200).json({ message: "Deleted comment" });
   }
 }
 
