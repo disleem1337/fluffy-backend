@@ -17,4 +17,6 @@ router.post(
   UserController.setup
 );
 
+router.get("/:id", Authorization, UserController.getUserById);
+
 export default router;

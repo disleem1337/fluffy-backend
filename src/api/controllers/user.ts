@@ -5,6 +5,7 @@ import Joi from "joi";
 import { RequestWithUser } from "../../types/requestWithUser";
 import { s3, bucketName, region } from "../../s3";
 import { randomUUID } from "crypto";
+import mongoose from "mongoose";
 
 const setupSchema = Joi.object({
   name: Joi.string().alphanum().required().min(3).max(64),
@@ -19,6 +20,22 @@ class UserController {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     return res.status(200).json({ message: "OK", user });
+  }
+
+  public async getUserById(req: RequestWithUser, res: Response): Promise<any> {
+    const id = req.params["id"];
+
+    if (!id) return res.status(400).json({ message: "User id is required" });
+
+    try {
+      const user = await User.findById(new mongoose.Types.ObjectId(id));
+
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      return res.status(200).json({ message: "OK", user });
+    } catch (err) {
+      return res.status(500).json({ message: "Server error" });
+    }
   }
 
   public async setup(req: RequestWithUser, res: Response): Promise<any> {

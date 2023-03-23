@@ -195,6 +195,14 @@ class PostController {
           },
         },
         {
+          $lookup: {
+            from: "users",
+            localField: "comments.userid",
+            foreignField: "_id",
+            as: "commentUsers",
+          },
+        },
+        {
           $addFields: {
             likeCount: { $size: "$likes" },
             commentCount: { $size: "$comments" },
