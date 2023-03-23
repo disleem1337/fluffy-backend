@@ -20,6 +20,8 @@ router.get("/", Authorization, PostController.getUserPost);
 
 router.get("/feed", Authorization, PostController.getFeed);
 
+router.get("/:id", Authorization, PostController.getPostById);
+
 router.post("/like", Authorization, PostController.likePost);
 
 router.post("/unlike", Authorization, PostController.unlikePost);

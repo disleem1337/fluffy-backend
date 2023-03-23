@@ -161,6 +161,60 @@ class PostController {
     );
   }
 
+  public async getPostById(req: RequestWithUser, res: Response) {
+    const postId = req.params["id"];
+
+    if (!postId)
+      return res.status(400).json({ message: "Post id is required" });
+
+    post.aggregate(
+      [
+        { $match: { _id: new mongoose.Types.ObjectId(postId) } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userid",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $lookup: {
+            from: "postlikes",
+            localField: "_id",
+            foreignField: "postid",
+            as: "likes",
+          },
+        },
+        {
+          $lookup: {
+            from: "postcomments",
+            localField: "_id",
+            foreignField: "postid",
+            as: "comments",
+          },
+        },
+        {
+          $addFields: {
+            likeCount: { $size: "$likes" },
+            commentCount: { $size: "$comments" },
+            liked: {
+              $in: [new mongoose.Types.ObjectId(req.id), "$likes.userid"],
+            },
+          },
+        },
+      ],
+      (err, result) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ message: "Server error" });
+        }
+
+        return res.json({ data: result });
+      }
+    );
+  }
+
   public async getFeed(req: RequestWithUser, res: Response): Promise<any> {
     post.aggregate(
       [
