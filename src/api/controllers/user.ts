@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import { utils } from "ethers";
 import User from "../../models/user";
+import Post from "../../models/post";
+import PostLike from "../../models/postLike";
+import PostComment from "../../models/postComment";
 import Joi from "joi";
 import { RequestWithUser } from "../../types/requestWithUser";
 import { s3, bucketName, region } from "../../s3";
@@ -108,6 +111,41 @@ class UserController {
     await user.save();
 
     return res.status(200).json({ message: "OK" });
+  }
+
+  public async getStats(req: RequestWithUser, res: Response): Promise<any> {
+    const id = req.id;
+
+    if (!id) return res.status(400).json({ message: "User id is required" });
+
+    const user = await User.findById(id);
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const userCreatedAt = user.createdAt.toISOString();
+    const userCount = await User.countDocuments();
+    const postCount = await Post.count({ userid: id });
+    const postLikeCount = await PostLike.count({ userid: id });
+    const postCommentCount = await PostComment.count({ userid: id });
+
+    return res.status(200).json({
+      message: "OK",
+      data: {
+        userCreatedAt: userCreatedAt,
+        userCount: userCount,
+        postCount: postCount,
+        postLikeCount: postLikeCount,
+        postCommentCount: postCommentCount,
+      },
+    });
+  }
+
+  public async getAllUser(req: RequestWithUser, res: Response): Promise<any> {
+    const users = await User.find().limit(5);
+
+    if (!users) return res.status(404).json({ message: "Users not found" });
+
+    return res.status(200).json({ message: "OK", data: users });
   }
 }
 

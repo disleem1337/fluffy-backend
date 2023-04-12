@@ -148,6 +148,9 @@ class PostController {
         {
           $unset: ["likes"],
         },
+        {
+          $sort: { createdAt: -1 },
+        },
       ],
       function (err, result) {
         if (err) {
