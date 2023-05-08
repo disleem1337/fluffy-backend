@@ -140,6 +140,37 @@ class UserController {
     });
   }
 
+  public async getOtherStats(
+    req: RequestWithUser,
+    res: Response
+  ): Promise<any> {
+    const { userid } = req.body;
+
+    if (!userid)
+      return res.status(400).json({ message: "User id is required" });
+
+    const user = await User.findById(userid);
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const userCreatedAt = user.createdAt.toISOString();
+    const userCount = await User.countDocuments();
+    const postCount = await Post.count({ userid: userid });
+    const postLikeCount = await PostLike.count({ userid: userid });
+    const postCommentCount = await PostComment.count({ userid: userid });
+
+    return res.status(200).json({
+      message: "OK",
+      data: {
+        userCreatedAt: userCreatedAt,
+        userCount: userCount,
+        postCount: postCount,
+        postLikeCount: postLikeCount,
+        postCommentCount: postCommentCount,
+      },
+    });
+  }
+
   public async getAllUser(req: RequestWithUser, res: Response): Promise<any> {
     const users = await User.find().limit(5);
 

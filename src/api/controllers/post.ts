@@ -164,6 +164,69 @@ class PostController {
     );
   }
 
+  public async getOtherUserPost(
+    req: RequestWithUser,
+    res: Response
+  ): Promise<any> {
+    const { userid } = req.body;
+
+    if (!userid) return res.status(400).json({ message: "Userid is required" });
+
+    post.aggregate(
+      [
+        { $match: { userid: new mongoose.Types.ObjectId(userid) } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userid",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $lookup: {
+            from: "postlikes",
+            localField: "_id",
+            foreignField: "postid",
+            as: "likes",
+          },
+        },
+        {
+          $lookup: {
+            from: "postcomments",
+            localField: "_id",
+            foreignField: "postid",
+            as: "comments",
+          },
+        },
+        {
+          $addFields: {
+            likeCount: { $size: "$likes" },
+            commentCount: { $size: "$comments" },
+            liked: {
+              $in: [new mongoose.Types.ObjectId(req.id), "$likes.userid"],
+            },
+          },
+        },
+        {
+          $unset: ["likes"],
+        },
+        {
+          $sort: { createdAt: -1 },
+        },
+      ],
+      function (err, result) {
+        if (err) {
+          return res.status(400).json({ message: err });
+        }
+
+        return res
+          .status(200)
+          .json({ message: "OK", user: req.id, userposts: result });
+      }
+    );
+  }
+
   public async getPostById(req: RequestWithUser, res: Response) {
     const postId = req.params["id"];
 

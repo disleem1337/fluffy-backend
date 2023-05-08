@@ -30,4 +30,10 @@ router.post("/comment", Authorization, PostController.commentPost);
 
 router.delete("/comment", Authorization, PostController.deleteComment);
 
+router.post(
+  "/getotheruserposts",
+  Authorization,
+  PostController.getOtherUserPost
+);
+
 export default router;
