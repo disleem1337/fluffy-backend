@@ -1,16 +1,13 @@
 import mongoose from "mongoose";
 
-const PostLikeSchema = new mongoose.Schema(
+const UserFollowSchema = new mongoose.Schema(
   {
-    commentid: {
+    followerId: {
       type: mongoose.Schema.Types.ObjectId,
-    },
-    postid: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "post",
+      ref: "user",
       required: true,
     },
-    userid: {
+    followingId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "user",
       required: true,
@@ -19,4 +16,4 @@ const PostLikeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("PostLike", PostLikeSchema);
+export default mongoose.model("UserFollow", UserFollowSchema);

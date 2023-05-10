@@ -19,6 +19,9 @@ router.post(
 
 router.get("/:id", Authorization, UserController.getUserById);
 
+router.post("/:id/follow", Authorization, UserController.follow);
+router.post("/:id/unfollow", Authorization, UserController.unfollow);
+
 router.post("/stats", Authorization, UserController.getStats);
 
 router.post("/allUser", Authorization, UserController.getAllUser);

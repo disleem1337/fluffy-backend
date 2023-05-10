@@ -9,6 +9,7 @@ import { RequestWithUser } from "../../types/requestWithUser";
 import { s3, bucketName, region } from "../../s3";
 import { randomUUID } from "crypto";
 import mongoose from "mongoose";
+import UserFollow from "../../models/userFollow";
 
 const setupSchema = Joi.object({
   name: Joi.string().alphanum().required().min(3).max(64),
@@ -18,11 +19,50 @@ const setupSchema = Joi.object({
 
 class UserController {
   public async me(req: RequestWithUser, res: Response): Promise<any> {
-    const user = await User.findById(req.id);
+    User.aggregate(
+      [
+        {
+          $match: { _id: new mongoose.Types.ObjectId(req.id) },
+        },
+        {
+          $lookup: {
+            from: "userfollows",
+            localField: "_id",
+            foreignField: "followerId",
+            as: "followings",
+          },
+        },
+        {
+          $lookup: {
+            from: "userfollows",
+            localField: "_id",
+            foreignField: "followingId",
+            as: "followers",
+          },
+        },
+        {
+          $addFields: {
+            followerCount: { $size: "$followers" },
+            followingCount: { $size: "$followings" },
+          },
+        },
+        {
+          $unset: ["followers", "followings"],
+        },
+      ],
+      (err, result) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ message: "Server error" });
+        }
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+        const user = result[0];
 
-    return res.status(200).json({ message: "OK", user });
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        return res.status(200).json({ message: "OK", user });
+      }
+    );
   }
 
   public async getUserById(req: RequestWithUser, res: Response): Promise<any> {
@@ -30,15 +70,56 @@ class UserController {
 
     if (!id) return res.status(400).json({ message: "User id is required" });
 
-    try {
-      const user = await User.findById(new mongoose.Types.ObjectId(id));
+    User.aggregate(
+      [
+        {
+          $match: { _id: new mongoose.Types.ObjectId(id) },
+        },
+        {
+          $lookup: {
+            from: "userfollows",
+            localField: "_id",
+            foreignField: "followerId",
+            as: "followings",
+          },
+        },
+        {
+          $lookup: {
+            from: "userfollows",
+            localField: "_id",
+            foreignField: "followingId",
+            as: "followers",
+          },
+        },
+        {
+          $addFields: {
+            followerCount: { $size: "$followers" },
+            followingCount: { $size: "$followings" },
+            following: {
+              $in: [
+                new mongoose.Types.ObjectId(req.id),
+                "$followers.followerId",
+              ],
+            },
+          },
+        },
+        {
+          $unset: ["followers", "followings"],
+        },
+      ],
+      (err, result) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ message: "Server error" });
+        }
 
-      if (!user) return res.status(404).json({ message: "User not found" });
+        const user = result[0];
 
-      return res.status(200).json({ message: "OK", user });
-    } catch (err) {
-      return res.status(500).json({ message: "Server error" });
-    }
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        return res.status(200).json({ message: "OK", user });
+      }
+    );
   }
 
   public async setup(req: RequestWithUser, res: Response): Promise<any> {
@@ -123,10 +204,13 @@ class UserController {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const userCreatedAt = user.createdAt.toISOString();
-    const userCount = await User.countDocuments();
-    const postCount = await Post.count({ userid: id });
-    const postLikeCount = await PostLike.count({ userid: id });
-    const postCommentCount = await PostComment.count({ userid: id });
+    const [userCount, postCount, postLikeCount, postCommentCount] =
+      await Promise.all([
+        User.countDocuments(),
+        Post.count({ userid: id }),
+        PostLike.count({ userid: id }),
+        PostComment.count({ userid: id }),
+      ]);
 
     return res.status(200).json({
       message: "OK",
@@ -154,10 +238,13 @@ class UserController {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const userCreatedAt = user.createdAt.toISOString();
-    const userCount = await User.countDocuments();
-    const postCount = await Post.count({ userid: userid });
-    const postLikeCount = await PostLike.count({ userid: userid });
-    const postCommentCount = await PostComment.count({ userid: userid });
+    const [userCount, postCount, postLikeCount, postCommentCount] =
+      await Promise.all([
+        User.countDocuments(),
+        Post.count({ userid: userid }),
+        PostLike.count({ userid: userid }),
+        PostComment.count({ userid: userid }),
+      ]);
 
     return res.status(200).json({
       message: "OK",
@@ -172,11 +259,87 @@ class UserController {
   }
 
   public async getAllUser(req: RequestWithUser, res: Response): Promise<any> {
-    const users = await User.find().limit(5);
+    User.aggregate(
+      [
+        {
+          $limit: 5,
+        },
+        {
+          $lookup: {
+            from: "userfollows",
+            localField: "_id",
+            foreignField: "followerId",
+            as: "followings",
+          },
+        },
+        {
+          $lookup: {
+            from: "userfollows",
+            localField: "_id",
+            foreignField: "followingId",
+            as: "followers",
+          },
+        },
+        {
+          $addFields: {
+            followerCount: { $size: "$followers" },
+            followingCount: { $size: "$followings" },
+            following: {
+              $in: [
+                new mongoose.Types.ObjectId(req.id),
+                "$followers.followerId",
+              ],
+            },
+          },
+        },
+        {
+          $unset: ["followers", "followings"],
+        },
+      ],
+      (err, users) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ message: "Server error" });
+        }
+        return res.status(200).json({ message: "OK", data: users });
+      }
+    );
+  }
 
-    if (!users) return res.status(404).json({ message: "Users not found" });
+  public async follow(req: RequestWithUser, res: Response) {
+    const id = req.params.id;
 
-    return res.status(200).json({ message: "OK", data: users });
+    const userToFollow = await User.findById(req.id);
+
+    if (!userToFollow)
+      return res.status(404).json({ message: "User not found" });
+
+    const userFollow = new UserFollow();
+    userFollow.followerId = new mongoose.Types.ObjectId(req.id);
+    userFollow.followingId = new mongoose.Types.ObjectId(id);
+
+    await userFollow.save();
+    return res.status(200).json({
+      message: "OK",
+    });
+  }
+
+  public async unfollow(req: RequestWithUser, res: Response) {
+    const id = req.params.id;
+
+    const userFollow = await UserFollow.findOne({
+      followerId: new mongoose.Types.ObjectId(req.id),
+      followingId: new mongoose.Types.ObjectId(id),
+    });
+
+    if (!userFollow)
+      return res.status(404).json({ message: "You don't follow him already" });
+
+    await userFollow.remove();
+
+    return res.status(200).json({
+      message: "OK",
+    });
   }
 }
 
