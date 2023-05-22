@@ -10,6 +10,7 @@ import { s3, bucketName, region } from "../../s3";
 import { randomUUID } from "crypto";
 import mongoose from "mongoose";
 import UserFollow from "../../models/userFollow";
+import notification from "../../models/notification";
 
 const setupSchema = Joi.object({
   name: Joi.string().alphanum().required().min(3).max(64),
@@ -319,8 +320,35 @@ class UserController {
     userFollow.followingId = new mongoose.Types.ObjectId(id);
 
     await userFollow.save();
+
+    if (userToFollow._id.toString() != id) {
+      const Notification = new notification({
+        NotificationOwnerId: id,
+        action: "follow",
+        message: `${userToFollow.username} adlı kullanıcı seni takip etti`,
+      });
+      await Notification.save();
+    }
+
     return res.status(200).json({
       message: "OK",
+    });
+  }
+
+  public async getNotifications(req: RequestWithUser, res: Response) {
+    const notifications = await notification.find({
+      NotificationOwnerId: req.id,
+    });
+
+    //update notifications notify field
+    await notification.updateMany(
+      { NotificationOwnerId: req.id },
+      { $set: { notify: false } }
+    );
+
+    return res.status(200).json({
+      message: "OK",
+      data: notifications,
     });
   }
 

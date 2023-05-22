@@ -9,6 +9,8 @@ import post from "../../models/post";
 import postLike from "../../models/postLike";
 import postComment from "../../models/postComment";
 import mongoose from "mongoose";
+import user from "../../models/user";
+import notification from "../../models/notification";
 
 class PostController {
   public async CreatePost(req: RequestWithUser, res: Response): Promise<any> {
@@ -347,6 +349,14 @@ class PostController {
     if (!postid)
       return res.status(404).json({ message: "Post id is required" });
 
+    const likedUser = await user.findOne({
+      _id: new mongoose.Types.ObjectId(req.id),
+    });
+
+    const likedPost = await post.findOne({
+      _id: new mongoose.Types.ObjectId(postid),
+    });
+
     const PostLiked = await postLike.findOne({
       postid: new mongoose.Types.ObjectId(postid),
       userid: new mongoose.Types.ObjectId(req.id),
@@ -360,6 +370,16 @@ class PostController {
       postid: new mongoose.Types.ObjectId(postid),
       userid: new mongoose.Types.ObjectId(req.id),
     });
+
+    if (likedPost.userid.toString() != likedUser._id.toString()) {
+      const Notification = new notification({
+        NotificationOwnerId: likedPost.userid,
+        action: "like",
+        message: `${likedUser.username} adlı kullanıcı senin gönderini beğendi`,
+      });
+
+      await Notification.save();
+    }
 
     await PostLike.save();
 
@@ -397,6 +417,24 @@ class PostController {
 
     if (!comment)
       return res.status(404).json({ message: "Comment is required" });
+
+    const CommentUser = await user.findOne({
+      _id: new mongoose.Types.ObjectId(req.id),
+    });
+
+    const commentPost = await post.findOne({
+      _id: new mongoose.Types.ObjectId(postid),
+    });
+
+    if (commentPost.userid.toString() != CommentUser._id.toString()) {
+      const Notification = new notification({
+        NotificationOwnerId: commentPost.userid,
+        action: "comment",
+        message: `${CommentUser.username} adlı kullanıcı senin gönderine yorum yaptı`,
+      });
+
+      await Notification.save();
+    }
 
     const PostComment = new postComment({
       postid: new mongoose.Types.ObjectId(postid),
