@@ -8,7 +8,7 @@ import { randomUUID } from "crypto";
 import post from "../../models/post";
 import postLike from "../../models/postLike";
 import postComment from "../../models/postComment";
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
 import user from "../../models/user";
 import notification from "../../models/notification";
 
@@ -373,9 +373,13 @@ class PostController {
 
     if (likedPost.userid.toString() != likedUser._id.toString()) {
       const Notification = new notification({
-        NotificationOwnerId: likedPost.userid,
+        sourceUser: new mongoose.Types.ObjectId(req.id),
+        destinationUser: new mongoose.Types.ObjectId(likedPost.userid),
         action: "like",
-        message: `${likedUser.username} adlı kullanıcı senin gönderini beğendi`,
+        metadata: {
+          postId: likedPost._id,
+          message: `${likedUser.username} adlı kullanıcı bir gönderini beğendi.`,
+        },
       });
 
       await Notification.save();
@@ -426,16 +430,6 @@ class PostController {
       _id: new mongoose.Types.ObjectId(postid),
     });
 
-    if (commentPost.userid.toString() != CommentUser._id.toString()) {
-      const Notification = new notification({
-        NotificationOwnerId: commentPost.userid,
-        action: "comment",
-        message: `${CommentUser.username} adlı kullanıcı senin gönderine yorum yaptı`,
-      });
-
-      await Notification.save();
-    }
-
     const PostComment = new postComment({
       postid: new mongoose.Types.ObjectId(postid),
       userid: new mongoose.Types.ObjectId(req.id),
@@ -443,6 +437,21 @@ class PostController {
     });
 
     await PostComment.save();
+
+    if (commentPost.userid.toString() != CommentUser._id.toString()) {
+      const Notification = new notification({
+        sourceUser: new mongoose.Types.ObjectId(req.id),
+        destinationUser: new mongoose.Types.ObjectId(commentPost.userid),
+        action: "comment",
+        metadata: {
+          postId: commentPost._id,
+          commentId: PostComment._id,
+          message: `${CommentUser.username} adlı kullanıcı bir gönderine yorum yaptı.`,
+        },
+      });
+
+      await Notification.save();
+    }
 
     return res.status(200).json({ message: "Commented post" });
   }

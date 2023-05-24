@@ -26,7 +26,5 @@ router.post("/stats", Authorization, UserController.getStats);
 
 router.post("/allUser", Authorization, UserController.getAllUser);
 
-router.post("/notifications", Authorization, UserController.getNotifications);
-
 router.post("/otheruserstats", Authorization, UserController.getOtherStats);
 export default router;

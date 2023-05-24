@@ -323,32 +323,18 @@ class UserController {
 
     if (userToFollow._id.toString() != id) {
       const Notification = new notification({
-        NotificationOwnerId: id,
+        sourceUser: new mongoose.Types.ObjectId(req.id),
+        destinationUser: new mongoose.Types.ObjectId(userFollow._id),
         action: "follow",
-        message: `${userToFollow.username} adlı kullanıcı seni takip etti`,
+        metadata: {
+          message: `${userToFollow.username} adlı kullanıcı sizi takip etti.`,
+        },
       });
       await Notification.save();
     }
 
     return res.status(200).json({
       message: "OK",
-    });
-  }
-
-  public async getNotifications(req: RequestWithUser, res: Response) {
-    const notifications = await notification.find({
-      NotificationOwnerId: req.id,
-    });
-
-    //update notifications notify field
-    await notification.updateMany(
-      { NotificationOwnerId: req.id },
-      { $set: { notify: false } }
-    );
-
-    return res.status(200).json({
-      message: "OK",
-      data: notifications,
     });
   }
 
