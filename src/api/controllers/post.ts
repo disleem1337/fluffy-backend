@@ -372,17 +372,25 @@ class PostController {
     });
 
     if (likedPost.userid.toString() != likedUser._id.toString()) {
-      const Notification = new notification({
+      let notificationCheck = await notification.findOne({
         sourceUser: new mongoose.Types.ObjectId(req.id),
         destinationUser: new mongoose.Types.ObjectId(likedPost.userid),
         action: "like",
-        metadata: {
-          postId: likedPost._id,
-          message: `${likedUser.username} adlı kullanıcı bir gönderini beğendi.`,
-        },
       });
 
-      await Notification.save();
+      if (!notificationCheck) {
+        const Notification = new notification({
+          sourceUser: new mongoose.Types.ObjectId(req.id),
+          destinationUser: new mongoose.Types.ObjectId(likedPost.userid),
+          action: "like",
+          DatabaseID: PostLike._id,
+          metadata: {
+            postId: likedPost._id,
+            message: `${likedUser.username} adlı kullanıcı bir gönderini beğendi.`,
+          },
+        });
+        await Notification.save();
+      }
     }
 
     await PostLike.save();
@@ -409,6 +417,12 @@ class PostController {
       postid: new mongoose.Types.ObjectId(postid),
       userid: new mongoose.Types.ObjectId(req.id),
     });
+
+    let findNofication = await notification.findOne({
+      DatabaseID: PostLiked._id,
+    });
+
+    if (findNofication) findNofication.remove();
 
     return res.status(200).json({ message: "Unliked post" });
   }
@@ -439,18 +453,27 @@ class PostController {
     await PostComment.save();
 
     if (commentPost.userid.toString() != CommentUser._id.toString()) {
-      const Notification = new notification({
+      let notificationCheck = await notification.findOne({
         sourceUser: new mongoose.Types.ObjectId(req.id),
         destinationUser: new mongoose.Types.ObjectId(commentPost.userid),
         action: "comment",
-        metadata: {
-          postId: commentPost._id,
-          commentId: PostComment._id,
-          message: `${CommentUser.username} adlı kullanıcı bir gönderine yorum yaptı.`,
-        },
       });
 
-      await Notification.save();
+      if (!notificationCheck) {
+        const Notification = new notification({
+          sourceUser: new mongoose.Types.ObjectId(req.id),
+          destinationUser: new mongoose.Types.ObjectId(commentPost.userid),
+          databaseID: PostComment._id,
+          action: "comment",
+          metadata: {
+            postId: commentPost._id,
+            commentId: PostComment._id,
+            message: `${CommentUser.username} adlı kullanıcı bir gönderine yorum yaptı.`,
+          },
+        });
+
+        await Notification.save();
+      }
     }
 
     return res.status(200).json({ message: "Commented post" });
@@ -476,6 +499,12 @@ class PostController {
     await postComment.deleteOne({
       _id: new mongoose.Types.ObjectId(commentid),
     });
+
+    let findNofication = await notification.findOne({
+      DatabaseID: Comment._id,
+    });
+
+    if (findNofication) findNofication.remove();
 
     return res.status(200).json({ message: "Deleted comment" });
   }

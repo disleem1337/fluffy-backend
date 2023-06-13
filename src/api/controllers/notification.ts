@@ -1,15 +1,19 @@
 import { Response } from "express";
 import Notification from "../../models/notification";
 import { RequestWithUser } from "../../types/requestWithUser";
+import mongoose from "mongoose";
 
 class NotificationController {
   async getAll(req: RequestWithUser, res: Response) {
     const seen = req.query.seen;
 
+
     const notifications = await Notification.find({
-      NotificationOwnerId: req.id,
+      destinationUser:new mongoose.Types.ObjectId(req.id),
       ...(seen != undefined ? { seen } : {}),
     });
+
+
 
     return res.status(200).json({
       message: "OK",

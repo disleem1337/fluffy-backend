@@ -322,15 +322,24 @@ class UserController {
     await userFollow.save();
 
     if (userToFollow._id.toString() != id) {
-      const Notification = new notification({
+      let notificationCheck = await notification.findOne({
         sourceUser: new mongoose.Types.ObjectId(req.id),
-        destinationUser: new mongoose.Types.ObjectId(userFollow._id),
+        destinationUser: new mongoose.Types.ObjectId(id),
         action: "follow",
-        metadata: {
-          message: `${userToFollow.username} adlı kullanıcı sizi takip etti.`,
-        },
       });
-      await Notification.save();
+
+      if (!notificationCheck) {
+        const Notification = new notification({
+          sourceUser: new mongoose.Types.ObjectId(req.id),
+          destinationUser: new mongoose.Types.ObjectId(id),
+          DatabaseID: userFollow._id,
+          action: "follow",
+          metadata: {
+            message: `${userToFollow.username} adlı kullanıcı sizi takip etti.`,
+          },
+        });
+        await Notification.save();
+      }
     }
 
     return res.status(200).json({
@@ -342,14 +351,24 @@ class UserController {
     const id = req.params.id;
 
     const userFollow = await UserFollow.findOne({
-      followerId: new mongoose.Types.ObjectId(req.id),
-      followingId: new mongoose.Types.ObjectId(id),
+      followerId: new mongoose.Types.ObjectId(req.id), //sourceuser
+      followingId: new mongoose.Types.ObjectId(id), //destinationuser
     });
 
     if (!userFollow)
       return res.status(404).json({ message: "You don't follow him already" });
 
     await userFollow.remove();
+
+    const findNofication = await notification.findOne({
+      sourceUser: new mongoose.Types.ObjectId(req.id),
+      destinationUser: new mongoose.Types.ObjectId(id),
+      action: "follow",
+    });
+
+    if (findNofication) {
+      await findNofication.remove();
+    }
 
     return res.status(200).json({
       message: "OK",
