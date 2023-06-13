@@ -263,6 +263,11 @@ class UserController {
     User.aggregate(
       [
         {
+          $match: {
+            _id: { $ne: new mongoose.Types.ObjectId(req.id) },
+          },
+        },
+        {
           $limit: 5,
         },
         {
@@ -302,6 +307,9 @@ class UserController {
           console.error(err);
           return res.status(500).json({ message: "Server error" });
         }
+
+        users = users.filter((user) => user._id.toString() != req.id);
+
         return res.status(200).json({ message: "OK", data: users });
       }
     );
